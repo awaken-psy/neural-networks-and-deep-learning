@@ -1,41 +1,37 @@
 """network2.py
 ~~~~~~~~~~~~~~
 
-An improved version of network.py, implementing the stochastic
-gradient descent learning algorithm for a feedforward neural network.
-Improvements include the addition of the cross-entropy cost function,
-regularization, and better initialization of network weights.  Note
-that I have focused on making the code simple, easily readable, and
-easily modifiable.  It is not optimized, and omits many desirable
-features.
+network.py 的改进版本，实现了随机梯度下降学习算法的前馈神经网络。
+改进包括添加了交叉熵代价函数、正则化以及更好的权重初始化。注意，
+我主要关注代码的简洁性、可读性和易修改性。代码未经过优化，
+并且省略了许多理想的功能。
 
 """
 
-#### Libraries
-# Standard library
+#### 库
+# 标准库
 import json
 import random
 import sys
 
-# Third-party libraries
+# 第三方库
 import numpy as np
 
 
-#### Define the quadratic and cross-entropy cost functions
+#### 定义二次代价函数和交叉熵代价函数
 
 class QuadraticCost(object):
 
     @staticmethod
     def fn(a, y):
-        """Return the cost associated with an output ``a`` and desired output
-        ``y``.
+        """返回输出 ``a`` 和期望输出 ``y`` 之间的代价。
 
         """
         return 0.5*np.linalg.norm(a-y)**2
 
     @staticmethod
     def delta(z, a, y):
-        """Return the error delta from the output layer."""
+        """返回输出层的误差 delta。"""
         return (a-y) * sigmoid_prime(z)
 
 
@@ -43,39 +39,33 @@ class CrossEntropyCost(object):
 
     @staticmethod
     def fn(a, y):
-        """Return the cost associated with an output ``a`` and desired output
-        ``y``.  Note that np.nan_to_num is used to ensure numerical
-        stability.  In particular, if both ``a`` and ``y`` have a 1.0
-        in the same slot, then the expression (1-y)*np.log(1-a)
-        returns nan.  The np.nan_to_num ensures that that is converted
-        to the correct value (0.0).
+        """返回输出 ``a`` 和期望输出 ``y`` 之间的代价。注意，
+        使用 np.nan_to_num 来确保数值稳定性。特别是，如果 ``a`` 和
+        ``y`` 在同一位置都为 1.0，则表达式 (1-y)*np.log(1-a) 会返回
+        nan。np.nan_to_num 确保将其转换为正确的值（0.0）。
 
         """
         return np.sum(np.nan_to_num(-y*np.log(a)-(1-y)*np.log(1-a)))
 
     @staticmethod
     def delta(z, a, y):
-        """Return the error delta from the output layer.  Note that the
-        parameter ``z`` is not used by the method.  It is included in
-        the method's parameters in order to make the interface
-        consistent with the delta method for other cost classes.
+        """返回输出层的误差 delta。注意，参数 ``z`` 未被该方法使用。
+        将其包含在方法参数中是为了使接口与其他代价类的 delta 方法
+        保持一致。
 
         """
         return (a-y)
 
 
-#### Main Network class
+#### 主 Network 类
 class Network(object):
 
     def __init__(self, sizes, cost=CrossEntropyCost):
-        """The list ``sizes`` contains the number of neurons in the respective
-        layers of the network.  For example, if the list was [2, 3, 1]
-        then it would be a three-layer network, with the first layer
-        containing 2 neurons, the second layer 3 neurons, and the
-        third layer 1 neuron.  The biases and weights for the network
-        are initialized randomly, using
-        ``self.default_weight_initializer`` (see docstring for that
-        method).
+        """列表 ``sizes`` 包含网络各层的神经元数量。例如，如果列表
+        为 [2, 3, 1]，则这是一个三层网络，第一层有 2 个神经元，
+        第二层有 3 个神经元，第三层有 1 个神经元。网络的偏置和权重
+        使用 ``self.default_weight_initializer`` 随机初始化（参见该
+        方法的文档字符串）。
 
         """
         self.num_layers = len(sizes)
@@ -84,16 +74,12 @@ class Network(object):
         self.cost=cost
 
     def default_weight_initializer(self):
-        """Initialize each weight using a Gaussian distribution with mean 0
-        and standard deviation 1 over the square root of the number of
-        weights connecting to the same neuron.  Initialize the biases
-        using a Gaussian distribution with mean 0 and standard
-        deviation 1.
+        """使用均值为 0、标准差为 1 除以连接到同一神经元的权重数
+        的平方根的高斯分布来初始化每个权重。使用均值为 0、标准差
+        为 1 的高斯分布来初始化偏置。
 
-        Note that the first layer is assumed to be an input layer, and
-        by convention we won't set any biases for those neurons, since
-        biases are only ever used in computing the outputs from later
-        layers.
+        注意，第一层被假定为输入层，按惯例不为这些神经元设置偏置，
+        因为偏置只在计算后续层的输出时使用。
 
         """
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
@@ -101,19 +87,14 @@ class Network(object):
                         for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
     def large_weight_initializer(self):
-        """Initialize the weights using a Gaussian distribution with mean 0
-        and standard deviation 1.  Initialize the biases using a
-        Gaussian distribution with mean 0 and standard deviation 1.
+        """使用均值为 0、标准差为 1 的高斯分布来初始化权重。
+        使用均值为 0、标准差为 1 的高斯分布来初始化偏置。
 
-        Note that the first layer is assumed to be an input layer, and
-        by convention we won't set any biases for those neurons, since
-        biases are only ever used in computing the outputs from later
-        layers.
+        注意，第一层被假定为输入层，按惯例不为这些神经元设置偏置，
+        因为偏置只在计算后续层的输出时使用。
 
-        This weight and bias initializer uses the same approach as in
-        Chapter 1, and is included for purposes of comparison.  It
-        will usually be better to use the default weight initializer
-        instead.
+        这种权重和偏置初始化方法使用了与第一章相同的方法，包含此
+        方法是为了便于比较。通常使用默认权重初始化器会更好。
 
         """
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
@@ -121,7 +102,7 @@ class Network(object):
                         for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
     def feedforward(self, a):
-        """Return the output of the network if ``a`` is input."""
+        """如果输入为 ``a``，返回网络的输出。"""
         for b, w in zip(self.biases, self.weights):
             a = sigmoid(np.dot(w, a)+b)
         return a
@@ -133,23 +114,17 @@ class Network(object):
             monitor_evaluation_accuracy=False,
             monitor_training_cost=False,
             monitor_training_accuracy=False):
-        """Train the neural network using mini-batch stochastic gradient
-        descent.  The ``training_data`` is a list of tuples ``(x, y)``
-        representing the training inputs and the desired outputs.  The
-        other non-optional parameters are self-explanatory, as is the
-        regularization parameter ``lmbda``.  The method also accepts
-        ``evaluation_data``, usually either the validation or test
-        data.  We can monitor the cost and accuracy on either the
-        evaluation data or the training data, by setting the
-        appropriate flags.  The method returns a tuple containing four
-        lists: the (per-epoch) costs on the evaluation data, the
-        accuracies on the evaluation data, the costs on the training
-        data, and the accuracies on the training data.  All values are
-        evaluated at the end of each training epoch.  So, for example,
-        if we train for 30 epochs, then the first element of the tuple
-        will be a 30-element list containing the cost on the
-        evaluation data at the end of each epoch. Note that the lists
-        are empty if the corresponding flag is not set.
+        """使用小批量随机梯度下降训练神经网络。``training_data`` 是
+        一个包含元组 ``(x, y)`` 的列表，表示训练输入和期望输出。
+        其他非可选参数的含义不言自明，正则化参数 ``lmbda`` 也是如此。
+        该方法还接受 ``evaluation_data``，通常是验证数据或测试数据。
+        我们可以通过设置相应标志来监控评估数据或训练数据上的代价和
+        准确率。该方法返回一个包含四个列表的元组：评估数据上的（每
+        epoch 的）代价、评估数据上的准确率、训练数据上的代价、以及
+        训练数据上的准确率。所有值都在每个训练 epoch 结束时评估。因此，
+        例如我们训练 30 个 epoch，则元组的第一个元素将是一个包含 30
+        个元素的列表，表示每个 epoch 结束时评估数据上的代价。注意，
+        如果相应标志未设置，则列表为空。
 
         """
         if evaluation_data: n_data = len(evaluation_data)
@@ -164,35 +139,34 @@ class Network(object):
             for mini_batch in mini_batches:
                 self.update_mini_batch(
                     mini_batch, eta, lmbda, len(training_data))
-            print("Epoch %s training complete" % j)
+            print("Epoch %s 训练完成" % j)
             if monitor_training_cost:
                 cost = self.total_cost(training_data, lmbda)
                 training_cost.append(cost)
-                print("Cost on training data: {}".format(cost))
+                print("训练数据上的代价: {}".format(cost))
             if monitor_training_accuracy:
                 accuracy = self.accuracy(training_data, convert=True)
                 training_accuracy.append(accuracy)
-                print("Accuracy on training data: {} / {}".format(
+                print("训练数据上的准确率: {} / {}".format(
                     accuracy, n))
             if monitor_evaluation_cost:
                 cost = self.total_cost(evaluation_data, lmbda, convert=True)
                 evaluation_cost.append(cost)
-                print("Cost on evaluation data: {}".format(cost))
+                print("评估数据上的代价: {}".format(cost))
             if monitor_evaluation_accuracy:
                 accuracy = self.accuracy(evaluation_data)
                 evaluation_accuracy.append(accuracy)
-                print("Accuracy on evaluation data: {} / {}".format(
+                print("评估数据上的准确率: {} / {}".format(
                     self.accuracy(evaluation_data), n_data))
             print
         return evaluation_cost, evaluation_accuracy, \
             training_cost, training_accuracy
 
     def update_mini_batch(self, mini_batch, eta, lmbda, n):
-        """Update the network's weights and biases by applying gradient
-        descent using backpropagation to a single mini batch.  The
-        ``mini_batch`` is a list of tuples ``(x, y)``, ``eta`` is the
-        learning rate, ``lmbda`` is the regularization parameter, and
-        ``n`` is the total size of the training data set.
+        """通过使用反向传播对一个迷你批次应用梯度下降来更新网络
+        的权重和偏置。``mini_batch`` 是一个包含元组 ``(x, y)`` 的列表，
+        ``eta`` 是学习率，``lmbda`` 是正则化参数，``n`` 是训练数据
+        集的总大小。
 
         """
         nabla_b = [np.zeros(b.shape) for b in self.biases]
@@ -207,31 +181,28 @@ class Network(object):
                        for b, nb in zip(self.biases, nabla_b)]
 
     def backprop(self, x, y):
-        """Return a tuple ``(nabla_b, nabla_w)`` representing the
-        gradient for the cost function C_x.  ``nabla_b`` and
-        ``nabla_w`` are layer-by-layer lists of numpy arrays, similar
-        to ``self.biases`` and ``self.weights``."""
+        """返回一个元组 ``(nabla_b, nabla_w)``，表示代价函数 C_x 的
+        梯度。``nabla_b`` 和 ``nabla_w`` 是逐层的 numpy 数组列表，
+        类似于 ``self.biases`` 和 ``self.weights``。"""
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
-        # feedforward
+        # 前向传播
         activation = x
-        activations = [x] # list to store all the activations, layer by layer
-        zs = [] # list to store all the z vectors, layer by layer
+        activations = [x] # 存储各层激活值的列表
+        zs = [] # 存储各层 z 向量的列表
         for b, w in zip(self.biases, self.weights):
             z = np.dot(w, activation)+b
             zs.append(z)
             activation = sigmoid(z)
             activations.append(activation)
-        # backward pass
+        # 反向传播
         delta = (self.cost).delta(zs[-1], activations[-1], y)
         nabla_b[-1] = delta
         nabla_w[-1] = np.dot(delta, activations[-2].transpose())
-        # Note that the variable l in the loop below is used a little
-        # differently to the notation in Chapter 2 of the book.  Here,
-        # l = 1 means the last layer of neurons, l = 2 is the
-        # second-last layer, and so on.  It's a renumbering of the
-        # scheme in the book, used here to take advantage of the fact
-        # that Python can use negative indices in lists.
+        # 注意，下面循环中的变量 l 的使用方式与书中第二章的记号
+        # 略有不同。这里 l = 1 表示最后一层神经元，l = 2 表示倒数
+        # 第二层，以此类推。这是对书中编号方案的重新编号，利用了
+        # Python 可以使用负索引的特性。
         for l in range(2, self.num_layers):
             z = zs[-l]
             sp = sigmoid_prime(z)
@@ -241,26 +212,17 @@ class Network(object):
         return (nabla_b, nabla_w)
 
     def accuracy(self, data, convert=False):
-        """Return the number of inputs in ``data`` for which the neural
-        network outputs the correct result. The neural network's
-        output is assumed to be the index of whichever neuron in the
-        final layer has the highest activation.
+        """返回 ``data`` 中神经网络输出正确结果的输入数量。神经网络
+        的输出被假定为最后一层中激活值最高的神经元的索引。
 
-        The flag ``convert`` should be set to False if the data set is
-        validation or test data (the usual case), and to True if the
-        data set is the training data. The need for this flag arises
-        due to differences in the way the results ``y`` are
-        represented in the different data sets.  In particular, it
-        flags whether we need to convert between the different
-        representations.  It may seem strange to use different
-        representations for the different data sets.  Why not use the
-        same representation for all three data sets?  It's done for
-        efficiency reasons -- the program usually evaluates the cost
-        on the training data and the accuracy on other data sets.
-        These are different types of computations, and using different
-        representations speeds things up.  More details on the
-        representations can be found in
-        mnist_loader.load_data_wrapper.
+        标志 ``convert`` 在数据集是验证或测试数据（通常情况）时应设为
+        False，在数据集是训练数据时应设为 True。需要此标志的原因是
+        不同数据集中结果 ``y`` 的表示方式不同。特别是，它标志是否需要
+        在不同表示之间转换。对不同数据集使用不同表示可能看起来很奇怪。
+        为什么不对所有三个数据集使用相同的表示？这是出于效率原因 ——
+        程序通常在训练数据上评估代价，在其他数据集上评估准确率。这些
+        是不同类型的计算，使用不同的表示可以加快速度。有关表示的更多
+        细节可以在 mnist_loader.load_data_wrapper 中找到。
 
         """
         if convert:
@@ -272,11 +234,10 @@ class Network(object):
         return sum(int(x == y) for (x, y) in results)
 
     def total_cost(self, data, lmbda, convert=False):
-        """Return the total cost for the data set ``data``.  The flag
-        ``convert`` should be set to False if the data set is the
-        training data (the usual case), and to True if the data set is
-        the validation or test data.  See comments on the similar (but
-        reversed) convention for the ``accuracy`` method, above.
+        """返回数据集 ``data`` 的总代价。标志 ``convert`` 在数据集
+        是训练数据（通常情况）时应设为 False，在数据集是验证或测试
+        数据时应设为 True。参见上面 ``accuracy`` 方法中类似但相反的
+        约定说明。
         """
         cost = 0.0
         for x, y in data:
@@ -288,7 +249,7 @@ class Network(object):
         return cost
 
     def save(self, filename):
-        """Save the neural network to the file ``filename``."""
+        """将神经网络保存到文件 ``filename`` 中。"""
         data = {"sizes": self.sizes,
                 "weights": [w.tolist() for w in self.weights],
                 "biases": [b.tolist() for b in self.biases],
@@ -297,10 +258,9 @@ class Network(object):
         json.dump(data, f)
         f.close()
 
-#### Loading a Network
+#### 加载网络
 def load(filename):
-    """Load a neural network from the file ``filename``.  Returns an
-    instance of Network.
+    """从文件 ``filename`` 加载神经网络。返回一个 Network 实例。
 
     """
     f = open(filename, "r")
@@ -312,11 +272,10 @@ def load(filename):
     net.biases = [np.array(b) for b in data["biases"]]
     return net
 
-#### Miscellaneous functions
+#### 杂项函数
 def vectorized_result(j):
-    """Return a 10-dimensional unit vector with a 1.0 in the j'th position
-    and zeroes elsewhere.  This is used to convert a digit (0...9)
-    into a corresponding desired output from the neural network.
+    """返回一个 10 维的单位向量，在第 j 个位置为 1.0，其余为零。
+    用于将一个数字（0...9）转换为神经网络对应的期望输出。
 
     """
     e = np.zeros((10, 1))
@@ -324,9 +283,9 @@ def vectorized_result(j):
     return e
 
 def sigmoid(z):
-    """The sigmoid function."""
+    """sigmoid 函数。"""
     return 1.0/(1.0+np.exp(-z))
 
 def sigmoid_prime(z):
-    """Derivative of the sigmoid function."""
+    """sigmoid 函数的导数。"""
     return sigmoid(z)*(1-sigmoid(z))
